@@ -14,12 +14,17 @@ namespace {
 
 #include <vector>
 int main() {
-    auto sth = mov(mem(num(0)), num(42));
-    std::vector<Instruction*> init{sth};
+    /* auto sth = mov(mem(num(0)), num(42)); */
+    /* std::vector<Instruction*> init{sth}; */
     /* std::vector<std::unique_ptr<Instruction>> init3{sth}; */
     auto ooasm_move = program({
         mov(mem(num(0)), num(42))
     });
+
+    /* auto sth2 = mem(num(0)); */
+    /* auto ooasm_move = program({ */
+    /*     mem(num(0)) */
+    /* }); */
     Computer computer1(1);
     computer1.boot(ooasm_move);
     std::cout << memory_dump(computer1) << std::endl;
@@ -31,6 +36,7 @@ int main() {
     });
     Computer computer2(2);
     computer2.boot(ooasm_ones);
+    whatis(memory_dump(computer2))
     assert(memory_dump(computer2) == "1 -1 ");
 
     auto ooasm_data = program({

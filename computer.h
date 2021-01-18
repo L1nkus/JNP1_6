@@ -37,6 +37,8 @@ struct Pc {
 
 // wsm jakieś ASMelement zamiast Instruction?
 
+// virtualne destruktory, dziedziczenie
+
 // dużo protected?
 class Instruction {
 public:
@@ -51,6 +53,10 @@ public:
     }
     virtual void execute(Pc &pc) {
         whatis("insexec")
+    }
+    // lol, wystarczy tylko w tym miejscu ten jeden virtual destructor, i
+    // nigdzie niżej nie trzeba, i jest git
+    virtual ~Instruction() {
     }
     /* virtual void execute(Pc &pc) = 0; */
 };
@@ -126,6 +132,8 @@ public:
     /* Mem(const Rvalue &addr) : addr(addr) {} */
     // nie możemy mieć kopiowania I guess?
     Mem(Rvalue *addr) : addr(addr) {}
+    /* Mem(std::unique_ptr<Rvalue> &addr) : addr(std::move(addr)) {} */
+    /* Mem(std::unique_ptr<Rvalue> &&addr) : addr(std::move(addr)) {} */
 /* protected: */
 /* private: */
     void execute(Pc &pc) override {
@@ -149,7 +157,8 @@ public:
     // ^^slicing w przypadku Lea
     // w sumie wszędzie lepiej jednak nie trzymać kopii w takim razie?
     /* Rvalue &addr; */
-    Rvalue *addr;
+    /* Rvalue *addr; */
+    std::unique_ptr<Rvalue> addr;
     // wkaźniki chyba lepszym pomysłem
     // -> zwykłe, czy unique_ptr, czy shared_ptr? (aby można było kopiować
     // ewentualnie jeśli to wymagane)
@@ -177,7 +186,7 @@ public:
         arg->set_val(pc, data_vec);
     }
     virtual int64_t op(int64_t val) = 0;
-    Mem *arg;
+    std::unique_ptr<Mem> arg;
 };
 
 class Dec : public OneArgOp {
@@ -216,8 +225,8 @@ public:
         arg2->set_val(pc, data_vec);
     }
     virtual int64_t op(int64_t val1, int64_t val2) = 0;
-    Mem *arg1;
-    Rvalue *arg2;
+    std::unique_ptr<Mem> arg1;
+    std::unique_ptr<Rvalue> arg2;
 };
 
 class Add: public TwoArgOp {
@@ -256,8 +265,8 @@ public:
         src->set_val(pc, data_vec);
     }
     /* lvalue dst; */
-    Mem *dst;
-    Rvalue *src;
+    std::unique_ptr<Mem> dst;
+    std::unique_ptr<Rvalue> src;
 };
 
 
@@ -287,7 +296,7 @@ public:
             arg->set(pc, 1);
     }
     virtual bool cond_fulfilled(Pc &pc) = 0;
-    Mem *arg;
+    std::unique_ptr<Mem> arg;
 };
 
 class One : public Conditional {
@@ -323,7 +332,7 @@ public:
         data_vec.push_back(id);
     }
     std::string id;
-    Num *num;
+    std::unique_ptr<Num> num;
 };
 
 // jedynie funkcje, które mogą być pierwszymi w grupie, muszą/powinny zwracać
@@ -347,7 +356,12 @@ Mov *mov(Mem *dst, Rvalue *src) {
 
 // jednak najlepiej jak wszędzie wskaźniki są zwracane def
 Mem *mem(Rvalue *addr) {
+/* std::unique_ptr<Mem> mem(std::unique_ptr<Rvalue> addr) { */
+/* std::unique_ptr<Mem> mem(std::unique_ptr<Rvalue> &&addr) { */
     return new Mem(addr);
+    /* return std::make_unique<Mem>(addr); */
+    /* return std::make_unique<Mem>(std::move(addr)); */
+    /* return std::move(std::make_unique<Mem>(std::move(addr))); */
 }
 
 Lea *lea(const std::string &id) {
@@ -393,6 +407,10 @@ Ones *ones(Mem *arg) {
 Num *num(int64_t num) {
     return new Num(num);
 }
+/* std::unique_ptr<Num> num(int64_t num) { */
+/*     /1* return std::make_unique<Num>(num); *1/ */
+/*     return std::move(std::make_unique<Num>(num)); */
+/* } */
 
 /* template<typename... Args> */
 /* std::unique_ptr<Instruction> num(Args&&... args) { */
@@ -426,6 +444,7 @@ public:
     /* program(std::vector<std::unique_ptr<Instruction>> init) : vec(init) {} */
     program(const std::vector<Instruction*> &init) {
         /* vec = std::vector<std::unique_ptr<Instruction>>(init); */
+        // &?
         for(auto i: init){
             // or explicit constructor?
             vec.push_back(std::unique_ptr<Instruction>(i));
@@ -434,6 +453,15 @@ public:
             /* vec.push_back(std::make_unique<Instruction>(*i)); */
         }
     }
+    /* program(const std::vector<std::unique_ptr<Instruction>> &init) { */
+    /*     for(auto &i: init){ */
+    /*         // or explicit constructor? */
+    /*         vec.push_back(std::move(i)); */
+    /*         // lol, z konstruktorem działa overridowanie funkcji, poniżej jest */
+    /*         // object slicing chyba */
+    /*         /1* vec.push_back(std::make_unique<Instruction>(*i)); *1/ */
+    /*     } */
+    /* } */
 private:
     friend class Computer;
     // czy mozemy tak przekazywac :?
