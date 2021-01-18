@@ -28,6 +28,8 @@
 
 class Computer;
 
+using data_vec_t = std::vector<std::pair<std::string, size_t>>; // {klucz stringowy, nr komórki}
+
 // inna nazwa na to?
 struct Pc {
     std::vector<int64_t> arr;
@@ -45,10 +47,10 @@ public:
 /* protected: */
     friend class program;
     // przekazywanie klasy, czy wektora?
-    virtual void load(Pc &pc, std::vector<std::string> &data_vec) {
+    virtual void load(Pc &pc, data_vec_t &data_vec) {
         whatis("other load")
     }
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) {
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) {
         whatis("other set_val")
     }
     virtual void execute(Pc &pc) {
@@ -68,13 +70,13 @@ protected:
 
 class Settable : public Instruction {
 protected:
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) = 0;
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) = 0;
 };
 
 // nazwa?
 class Loadable : public Instruction {
 protected:
-    virtual void load(Pc &pc, std::vector<std::string> &data_vec) = 0;
+    virtual void load(Pc &pc, data_vec_t &data_vec) = 0;
 };
 
 class Rvalue : public Instruction {
@@ -95,19 +97,22 @@ public:
 class Lea : public Rvalue {
 public:
     Lea(const std::string &id) : id(id) {}
-    void set_val(Pc &pc, std::vector<std::string> &data_vec) override {
+    void set_val(Pc &pc, data_vec_t &data_vec) override {
         whatis("lea set_val")
         // make optymalniejsze def
         /* for (size_t i = 0; i < data_vec.size(); ++i) { */
         /*     if(data_vec */
         /* } */
-        auto it = std::find(data_vec.begin(), data_vec.end(), id);
-        if (it == data_vec.end()) {
+        /* auto it = std::find(data_vec.begin(), data_vec.end(), id); */
+        // -> optymalniejsze
+        auto it = std::lower_bound(data_vec.begin(), data_vec.end(), std::pair<std::string,size_t>{id,0});
+        if (it == data_vec.end() || it->first != id) {
             throw std::invalid_argument("Brak deklaracji zmiennej, do której "
                     "odwołuje się instrukcja Lea");
         }
         else {
-            _val = it - data_vec.begin();
+            /* _val = it - data_vec.begin(); */
+            _val = it->second;
         }
 
     }
@@ -142,7 +147,7 @@ public:
         addr->execute(pc);
         _val = pc.arr.at(cell_pos());
     }
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) override {
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
         whatis("mem set_val")
         addr->set_val(pc, data_vec);
     }
@@ -181,7 +186,7 @@ public:
         setflags(pc, res);
         arg->set(pc, res);
     }
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) override {
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
         whatis("oneargop set_val")
         arg->set_val(pc, data_vec);
     }
@@ -219,7 +224,7 @@ public:
         setflags(pc, res);
         arg1->set(pc, res);
     }
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) override {
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
         whatis("twoargop set_val")
         arg1->set_val(pc, data_vec);
         arg2->set_val(pc, data_vec);
@@ -259,7 +264,7 @@ public:
         whatis(src->val())
         dst->set(pc, src->val());
     }
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) override {
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
         whatis("mov set_val")
         dst->set_val(pc, data_vec);
         src->set_val(pc, data_vec);
@@ -287,7 +292,7 @@ protected:
 class Conditional : public Executable {
 public:
     Conditional(Mem *arg) : arg(arg) {}
-    virtual void set_val(Pc &pc, std::vector<std::string> &data_vec) override {
+    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
         arg->set_val(pc, data_vec);
     }
     virtual void execute(Pc &pc) override {
@@ -326,10 +331,10 @@ public:
 class Data : public Loadable {
 public:
     Data (const std::string &id, Num *num) : id(id), num(num) {}
-    void load(Pc &pc, std::vector<std::string> &data_vec) override {
+    void load(Pc &pc, data_vec_t &data_vec) override {
         whatis("data load")
         pc.arr.at(data_vec.size()) = num->val();
-        data_vec.push_back(id);
+        data_vec.push_back({id, data_vec.size()});
     }
     std::string id;
     std::unique_ptr<Num> num;
@@ -468,11 +473,14 @@ private:
     /* void run(Computer &pc) { */
     void run(Pc &pc) {
     /* void run(std::vector<int64_t> &arr) { */
-        std::vector<std::string> label_vec;
+        /* std::vector<std::string> label_vec; */
+        data_vec_t label_vec;
         for (auto &i: vec){
             /* i->load(arr, label_vec); */
             i->load(pc, label_vec);
         }
+        // abysmy mogli wyszukiwać binarnie klucz
+        std::sort(label_vec.begin(), label_vec.end());
         for (auto &i: vec){
             /* i->set_val(arr, label_vec); */
             i->set_val(pc, label_vec);
