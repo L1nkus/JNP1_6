@@ -1,5 +1,5 @@
-#ifndef JNP1_4_COMPUTER_H
-#define JNP1_4_COMPUTER_H
+#ifndef JNP1_6_COMPUTER_H
+#define JNP1_6_COMPUTER_H
 
 #include <algorithm>
 #include <cstdint>
@@ -50,10 +50,12 @@ public:
     virtual void load(Pc &pc, data_vec_t &data_vec) {
         whatis("other load")
     }
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) {
-        whatis("other set_val")
-    }
-    virtual void execute(Pc &pc) {
+    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) { */
+    /*     whatis("other set_val") */
+    /* } */
+
+    /* virtual void execute(Pc &pc) { */
+    virtual void execute(Pc &pc, data_vec_t &data_vec) {
         whatis("insexec")
     }
     // lol, wystarczy tylko w tym miejscu ten jeden virtual destructor, i
@@ -65,12 +67,7 @@ public:
 
 class Executable : public Instruction {
 protected:
-    virtual void execute(Pc &pc) = 0;
-};
-
-class Settable : public Instruction {
-protected:
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) = 0;
+    virtual void execute(Pc &pc, data_vec_t &data_vec) = 0;
 };
 
 // nazwa?
@@ -94,10 +91,13 @@ public:
 };
 
 /* class Lea : public Rvalue, public Settable { */
+// -> Executable jednak
 class Lea : public Rvalue {
 public:
     Lea(const std::string &id) : id(id) {}
-    void set_val(Pc &pc, data_vec_t &data_vec) override {
+    // wywalenie set_val, i zamiast tego ifowanie tego
+    /* void set_val(Pc &pc, data_vec_t &data_vec) override { */
+    void execute(Pc &pc, data_vec_t &data_vec) override {
         whatis("lea set_val")
         // make optymalniejsze def
         /* for (size_t i = 0; i < data_vec.size(); ++i) { */
@@ -141,16 +141,18 @@ public:
     /* Mem(std::unique_ptr<Rvalue> &&addr) : addr(std::move(addr)) {} */
 /* protected: */
 /* private: */
-    void execute(Pc &pc) override {
+    void execute(Pc &pc, data_vec_t &data_vec) override {
         // TODO upewnij się, że all rvalue mają execute (bo mem może być jako
         // rvalue, a on potrzebuje execute)
-        addr->execute(pc);
+        addr->execute(pc, data_vec);
         _val = pc.arr.at(cell_pos());
     }
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
-        whatis("mem set_val")
-        addr->set_val(pc, data_vec);
-    }
+    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) override { */
+    /*     whatis("mem set_val") */
+    /*     addr->set_val(pc, data_vec); */
+    /* } */
+    // zamiana na std::make_unsigned_t<word_type>
+    // a word_type jako using z int64_t
     uint64_t cell_pos() {
         return addr->val();
     }
@@ -180,16 +182,16 @@ class OneArgOp : public Executable {
 public:
     OneArgOp(Mem *arg) : arg(arg) {}
     // still virtual? jak z tym
-    void execute(Pc &pc) override {
-        arg->execute(pc);
+    void execute(Pc &pc, data_vec_t &data_vec) override {
+        arg->execute(pc, data_vec);
         int64_t res = op(arg->val());
         setflags(pc, res);
         arg->set(pc, res);
     }
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
-        whatis("oneargop set_val")
-        arg->set_val(pc, data_vec);
-    }
+    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) override { */
+    /*     whatis("oneargop set_val") */
+    /*     arg->set_val(pc, data_vec); */
+    /* } */
     virtual int64_t op(int64_t val) = 0;
     std::unique_ptr<Mem> arg;
 };
@@ -214,21 +216,21 @@ public:
 class TwoArgOp : public Executable {
 public:
     TwoArgOp(Mem *arg1, Rvalue *arg2) : arg1(arg1), arg2(arg2) {}
-    void execute(Pc &pc) override {
+    void execute(Pc &pc, data_vec_t &data_vec) override {
         whatis("twoargop execute")
-        arg1->execute(pc);
-        arg2->execute(pc);
+        arg1->execute(pc, data_vec);
+        arg2->execute(pc, data_vec);
         whatis(arg1->val())
         whatis(arg2->val())
         int64_t res = op(arg1->val(), arg2->val());
         setflags(pc, res);
         arg1->set(pc, res);
     }
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
-        whatis("twoargop set_val")
-        arg1->set_val(pc, data_vec);
-        arg2->set_val(pc, data_vec);
-    }
+    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) override { */
+    /*     whatis("twoargop set_val") */
+    /*     arg1->set_val(pc, data_vec); */
+    /*     arg2->set_val(pc, data_vec); */
+    /* } */
     virtual int64_t op(int64_t val1, int64_t val2) = 0;
     std::unique_ptr<Mem> arg1;
     std::unique_ptr<Rvalue> arg2;
@@ -256,19 +258,19 @@ public:
     Mov(Mem *dst, Rvalue *src) : dst(dst), src(src) {}
 /* protected: */
 /* private: */
-    void execute(Pc &pc) override {
+    void execute(Pc &pc, data_vec_t &data_vec) override {
         whatis("mov exec")
         /* static_cast<Instruction>(dst).execute(arr); */
-        dst->execute(pc);
-        src->execute(pc);
+        dst->execute(pc, data_vec);
+        src->execute(pc, data_vec);
         whatis(src->val())
         dst->set(pc, src->val());
     }
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
-        whatis("mov set_val")
-        dst->set_val(pc, data_vec);
-        src->set_val(pc, data_vec);
-    }
+    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) override { */
+    /*     whatis("mov set_val") */
+    /*     dst->set_val(pc, data_vec); */
+    /*     src->set_val(pc, data_vec); */
+    /* } */
     /* lvalue dst; */
     std::unique_ptr<Mem> dst;
     std::unique_ptr<Rvalue> src;
@@ -283,7 +285,7 @@ public:
         _val = val;
     }
 protected:
-    void execute(Pc &pc) override {
+    void execute(Pc &pc, data_vec_t &data_vec) override {
     }
 /* private: */
 /*     int64_t val; */
@@ -292,11 +294,11 @@ protected:
 class Conditional : public Executable {
 public:
     Conditional(Mem *arg) : arg(arg) {}
-    virtual void set_val(Pc &pc, data_vec_t &data_vec) override {
-        arg->set_val(pc, data_vec);
-    }
-    virtual void execute(Pc &pc) override {
-        arg->execute(pc);
+    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) override { */
+    /*     arg->set_val(pc, data_vec); */
+    /* } */
+    virtual void execute(Pc &pc, data_vec_t &data_vec) override {
+        arg->execute(pc, data_vec);
         if (cond_fulfilled(pc))
             arg->set(pc, 1);
     }
@@ -481,13 +483,14 @@ private:
         }
         // abysmy mogli wyszukiwać binarnie klucz
         std::sort(label_vec.begin(), label_vec.end());
-        for (auto &i: vec){
-            /* i->set_val(arr, label_vec); */
-            i->set_val(pc, label_vec);
-        }
+        /* for (auto &i: vec){ */
+        /*     /1* i->set_val(arr, label_vec); *1/ */
+        /*     i->set_val(pc, label_vec); */
+        /* } */
         for (auto &i: vec){
             /* i->execute(arr); */
-            i->execute(pc);
+            /* i->execute(pc); */
+            i->execute(pc, label_vec);
         }
     }
     std::vector<std::unique_ptr<Instruction>> vec;
@@ -524,4 +527,4 @@ private:
     /* bool sf; */
 };
 
-#endif // JNP1_4_COMPUTER_H
+#endif // JNP1_6_COMPUTER_H
