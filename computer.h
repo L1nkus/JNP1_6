@@ -41,6 +41,8 @@ struct Pc {
 
 // virtualne destruktory, dziedziczenie
 
+/* int destr_cnt; */
+
 // dużo protected?
 class Instruction {
 public:
@@ -48,7 +50,7 @@ public:
     friend class program;
     // przekazywanie klasy, czy wektora?
     virtual void load(Pc &pc, data_vec_t &data_vec) {
-        whatis("other load")
+        /* whatis("other load") */
     }
     /* virtual void set_val(Pc &pc, data_vec_t &data_vec) { */
     /*     whatis("other set_val") */
@@ -56,27 +58,33 @@ public:
 
     /* virtual void execute(Pc &pc) { */
     virtual void execute(Pc &pc, data_vec_t &data_vec) {
-        whatis("insexec")
+        /* whatis("insexec") */
     }
     // lol, wystarczy tylko w tym miejscu ten jeden virtual destructor, i
     // nigdzie niżej nie trzeba, i jest git
     virtual ~Instruction() {
+        /* whatis("~instruction") */
+        /* ++destr_cnt; */
     }
     /* virtual void execute(Pc &pc) = 0; */
 };
 
-class Executable : public Instruction {
+class Executable : public virtual Instruction {
+/* class Executable : public Instruction { */
 protected:
     virtual void execute(Pc &pc, data_vec_t &data_vec) = 0;
 };
 
 // nazwa?
-class Loadable : public Instruction {
+// TODO: czy tutaj zostawić virtual? Bo nie musi być, gdyż Load tylko od tego
+// Loadable dziedziczy, czyli nie ma żadnego diamentu
+class Loadable : public virtual Instruction {
 protected:
     virtual void load(Pc &pc, data_vec_t &data_vec) = 0;
 };
 
-class Rvalue : public Instruction {
+/* class Rvalue : public Instruction { */
+class Rvalue : public virtual Instruction {
 // tmp
 public:
 /* protected: */
@@ -92,7 +100,8 @@ public:
 
 /* class Lea : public Rvalue, public Settable { */
 // -> Executable jednak
-class Lea : public Rvalue {
+/* class Lea : public Rvalue { */
+class Lea : public Rvalue, public Executable {
 public:
     Lea(const std::string &id) : id(id) {}
     // wywalenie set_val, i zamiast tego ifowanie tego
@@ -131,8 +140,11 @@ public:
 /* class lvalue : public rvalue { */
 /* }; */
 
+// Lvalue zamiast Mem?
+
 // executable też
-class Mem : public Rvalue {
+/* class Mem : public Rvalue { */
+class Mem : public Rvalue, public Executable {
 public:
     /* Mem(const Rvalue &addr) : addr(addr) {} */
     // nie możemy mieć kopiowania I guess?
@@ -285,8 +297,8 @@ public:
         _val = val;
     }
 protected:
-    void execute(Pc &pc, data_vec_t &data_vec) override {
-    }
+    /* void execute(Pc &pc, data_vec_t &data_vec) override { */
+    /* } */
 /* private: */
 /*     int64_t val; */
 };
