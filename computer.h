@@ -62,6 +62,8 @@ public:
     }
     // lol, wystarczy tylko w tym miejscu ten jeden virtual destructor, i
     // nigdzie niżej nie trzeba, i jest git
+
+    // = default zamiast pustych klamr?
     virtual ~Instruction() {
         /* whatis("~instruction") */
         /* ++destr_cnt; */
@@ -330,6 +332,7 @@ class Onez : public Conditional {
 public:
     Onez(Mem *arg) : Conditional(arg) {}
     virtual bool cond_fulfilled(Pc &pc) override {
+        whatis(pc.zf)
         return pc.zf;
     }
 };
@@ -338,6 +341,7 @@ class Ones : public Conditional {
 public:
     Ones(Mem *arg) : Conditional(arg) {}
     virtual bool cond_fulfilled(Pc &pc) override {
+        whatis(pc.sf)
         return pc.sf;
     }
 };
@@ -518,6 +522,7 @@ public:
     /* void boot(program p) { */
     void boot(program &p) {
         std::fill(pc.arr.begin(), pc.arr.end(), 0);
+        pc.sf = pc.zf = 0;
         // przekazywanie klasy, czy wektora?
         /* p.run(*this); */
         /* p.run(arr); */
@@ -534,6 +539,7 @@ private:
     uint64_t mem_size;
     // inna nazwa?
     Pc pc;
+    /* Pc pc{}; */
     /* std::vector<int64_t> arr; */
     /* bool zf; */
     /* bool sf; */
