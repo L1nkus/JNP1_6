@@ -28,11 +28,13 @@
 
 class Computer;
 
-using data_vec_t = std::vector<std::pair<std::string, size_t>>; // {klucz stringowy, nr komórki}
-
+using variable_t = std::pair<std::string, size_t>; // {klucz stringowy, nr komórki}
+using data_vec_t = std::vector<variable_t>;
+using memory_t = std::vector<int64_t>;
 // inna nazwa na to?
+// [todo] zmienilbym na class, moze rozbić na procesor i pamięć (punkt 7 kryteriów) ~ab
 struct Pc {
-    std::vector<int64_t> arr;
+    memory_t arr;
     bool zf;
     bool sf;
 };
@@ -64,6 +66,7 @@ public:
     // nigdzie niżej nie trzeba, i jest git
 
     // = default zamiast pustych klamr?
+    // fixme - tak, jesli nic nie ma w srodku to =default. ~ab
     virtual ~Instruction() {
         /* whatis("~instruction") */
         /* ++destr_cnt; */
@@ -79,6 +82,8 @@ protected:
 
 // nazwa?
 // TODO: czy tutaj zostawić virtual? Bo nie musi być, gdyż Load tylko od tego
+// chyba nie ~ab
+
 // Loadable dziedziczy, czyli nie ma żadnego diamentu
 class Loadable : public virtual Instruction {
 protected:
@@ -103,6 +108,7 @@ public:
 /* class Lea : public Rvalue, public Settable { */
 // -> Executable jednak
 /* class Lea : public Rvalue { */
+// fixme Czy Lea powinno dziedziczyć po Instruction? ~ab
 class Lea : public Rvalue, public Executable {
 public:
     Lea(const std::string &id) : id(id) {}
@@ -146,6 +152,11 @@ public:
 
 // executable też
 /* class Mem : public Rvalue { */
+// [fixme] - to samo, Mem dziedziczy po Instruction więc skompiluje się
+// program typu {Mem(num(0))}, a jest on nielegalny w języku OOAsm
+// [fixme] Dodatkowo Mem nie jest L-wartością.
+//  Tu nie ma różnicy, ale jakby dodano nowe Lwartości do tego języka to byłby problem. ~ab
+// Propozycja (ukradziona od innych, rzecz jasna): Lvalue dziedziczy po Rvalue (nie ma diamentu)
 class Mem : public Rvalue, public Executable {
 public:
     /* Mem(const Rvalue &addr) : addr(addr) {} */
@@ -207,7 +218,7 @@ public:
     /*     arg->set_val(pc, data_vec); */
     /* } */
     virtual int64_t op(int64_t val) = 0;
-    std::unique_ptr<Mem> arg;
+    std::unique_ptr<Mem> arg; // [fixme] może lepiej weak_ptr albo shared_ptr? unique jakoś mi nie pasuje ~ab
 };
 
 class Dec : public OneArgOp {
@@ -266,6 +277,7 @@ public:
     }
 };
 
+// [todo] Tu skończyłem czytać, godzina 2:31 ~ab
 class Mov : public Executable {
 public:
     // const?
