@@ -27,12 +27,12 @@ namespace jnp1_6 {
     class Computer;
 
     using data_vec_t = std::vector<std::pair<std::string, size_t>>; // {klucz stringowy, nr komórki}
-    using word_type = int64_t;
-    using unsigned_word_type = std::make_unsigned_t<word_type>;
+    using word_t = int64_t;
+    using unsigned_word_t = std::make_unsigned_t<word_t>;
 
     // inna nazwa na to?
     struct Pc {
-        std::vector<word_type> arr;
+        std::vector<word_t> arr;
         bool zf;
         bool sf;
     };
@@ -70,10 +70,10 @@ namespace jnp1_6 {
 
     class Rvalue : public virtual Instruction {
     public:
-        word_type val(){
+        word_t val(){
             return _val;
         }
-        word_type _val;
+        word_t _val;
     };
 
     class Lea : public Rvalue, public Executable {
@@ -108,10 +108,10 @@ namespace jnp1_6 {
             addr->execute(pc, data_vec);
             _val = pc.arr.at(cell_pos());
         }
-        unsigned_word_type cell_pos() {
+        unsigned_word_t cell_pos() {
             return addr->val();
         }
-        void set(Pc &pc, word_type nval) {
+        void set(Pc &pc, word_t nval) {
             pc.arr.at(cell_pos()) = nval;
         }
         // TODO: unique_ptr, czy shared_ptr? (Jak programy mają być kopiowalne,
@@ -119,7 +119,9 @@ namespace jnp1_6 {
         std::unique_ptr<Rvalue> addr;
     };
 
-    void setflags(Pc &pc, word_type res) {
+    // TODO: Czy wszystkie funkcje w headerze powinny być inline?
+    // (YouCompleteMe mi je podreśla, ale przy kompilacji nie ma warninga)
+    void setflags(Pc &pc, word_t res) {
         pc.zf = res == 0;
         pc.sf = res < 0;
     }
@@ -130,18 +132,18 @@ namespace jnp1_6 {
         // still virtual? jak z tym
         void execute(Pc &pc, data_vec_t &data_vec) override {
             arg->execute(pc, data_vec);
-            word_type res = op(arg->val());
+            word_t res = op(arg->val());
             setflags(pc, res);
             arg->set(pc, res);
         }
-        virtual word_type op(word_type val) = 0;
+        virtual word_t op(word_t val) = 0;
         std::unique_ptr<Lvalue> arg;
     };
 
     class Dec : public OneArgOp {
     public:
         Dec(Lvalue *arg) : OneArgOp(arg) {}
-        word_type op(word_type val) override {
+        word_t op(word_t val) override {
             return val - 1;
         }
     };
@@ -149,7 +151,7 @@ namespace jnp1_6 {
     class Inc : public OneArgOp {
     public:
         Inc(Lvalue *arg) : OneArgOp(arg) {}
-        word_type op(word_type val) override {
+        word_t op(word_t val) override {
             return val + 1;
         }
     };
@@ -160,11 +162,11 @@ namespace jnp1_6 {
         void execute(Pc &pc, data_vec_t &data_vec) override {
             arg1->execute(pc, data_vec);
             arg2->execute(pc, data_vec);
-            word_type res = op(arg1->val(), arg2->val());
+            word_t res = op(arg1->val(), arg2->val());
             setflags(pc, res);
             arg1->set(pc, res);
         }
-        virtual word_type op(word_type val1, word_type val2) = 0;
+        virtual word_t op(word_t val1, word_t val2) = 0;
         std::unique_ptr<Lvalue> arg1;
         std::unique_ptr<Rvalue> arg2;
     };
@@ -172,7 +174,7 @@ namespace jnp1_6 {
     class Add: public TwoArgOp {
     public:
         Add(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
-        word_type op(word_type val1, word_type val2) override {
+        word_t op(word_t val1, word_t val2) override {
             return val1 + val2;
         }
     };
@@ -180,7 +182,7 @@ namespace jnp1_6 {
     class Sub : public TwoArgOp {
     public:
         Sub(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
-        word_type op(word_type val1, word_type val2) override {
+        word_t op(word_t val1, word_t val2) override {
             return val1 - val2;
         }
     };
@@ -201,7 +203,7 @@ namespace jnp1_6 {
 
     class Num : public Rvalue {
     public:
-        Num(word_type val) {
+        Num(word_t val) {
             _val = val;
         }
     };
@@ -302,7 +304,7 @@ jnp1_6::Ones *ones(jnp1_6::Lvalue *arg) {
     return new jnp1_6::Ones(arg);
 }
 
-jnp1_6::Num *num(jnp1_6::word_type num) {
+jnp1_6::Num *num(jnp1_6::word_t num) {
     return new jnp1_6::Num(num);
 }
 
@@ -338,7 +340,7 @@ private:
 
 class Computer {
 public:
-    Computer(jnp1_6::unsigned_word_type mem_size) {
+    Computer(jnp1_6::unsigned_word_t mem_size) {
         this->mem_size = mem_size;
         pc.arr.resize(mem_size);
     }
@@ -356,7 +358,7 @@ public:
     }
 private:
     // oddzielne "Memory"?
-    jnp1_6::unsigned_word_type mem_size;
+    jnp1_6::unsigned_word_t mem_size;
     // inna nazwa?
     jnp1_6::Pc pc;
 };
