@@ -105,7 +105,11 @@ public:
 /* class Lea : public Rvalue { */
 class Lea : public Rvalue, public Executable {
 public:
-    Lea(const std::string &id) : id(id) {}
+    Lea(const std::string &id) : id(id) {
+        if(id.size() < 1 || id.size() > 10){
+            throw std::invalid_argument("Nieprawidłowa długość identyfikatora");
+        }
+    }
     // wywalenie set_val, i zamiast tego ifowanie tego
     /* void set_val(Pc &pc, data_vec_t &data_vec) override { */
     void execute(Pc &pc, data_vec_t &data_vec) override {
@@ -348,9 +352,12 @@ public:
 
 class Data : public Loadable {
 public:
-    Data (const std::string &id, Num *num) : id(id), num(num) {}
+    Data (const std::string &id, Num *num) : id(id), num(num) {
+        if(id.size() < 1 || id.size() > 10){
+            throw std::invalid_argument("Nieprawidłowa długość identyfikatora");
+        }
+    }
     void load(Pc &pc, data_vec_t &data_vec) override {
-        whatis("data load")
         pc.arr.at(data_vec.size()) = num->val();
         data_vec.push_back({id, data_vec.size()});
     }
