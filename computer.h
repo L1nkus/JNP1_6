@@ -39,10 +39,9 @@ namespace jnp1_6 {
 
     // wsm jakieś ASMelement zamiast Instruction?
 
-    // dużo protected?
     class Instruction {
     public:
-        friend class program;
+        /* friend class program; */
         // przekazywanie klasy, czy wektora?
         virtual void load(Pc &, data_vec_t &) {
         }
@@ -50,13 +49,11 @@ namespace jnp1_6 {
         virtual void execute(Pc &, data_vec_t &) {
         }
 
-        // = default zamiast pustych klamr?
-        virtual ~Instruction() {
-        }
+        virtual ~Instruction() = default;
     };
 
     class Executable : public virtual Instruction {
-    protected:
+    public:
         virtual void execute(Pc &pc, data_vec_t &data_vec) = 0;
     };
 
@@ -64,7 +61,7 @@ namespace jnp1_6 {
     // TODO: czy tutaj zostawić virtual? Bo nie musi być, gdyż Load tylko od tego
     // Loadable dziedziczy, czyli nie ma żadnego diamentu
     class Loadable : public virtual Instruction {
-    protected:
+    public:
         virtual void load(Pc &pc, data_vec_t &data_vec) = 0;
     };
 
@@ -73,6 +70,7 @@ namespace jnp1_6 {
         word_t val(){
             return _val;
         }
+    protected:
         word_t _val;
     };
 
@@ -86,7 +84,8 @@ namespace jnp1_6 {
         // Ifowanie, jak już był ustawiony?
         // Bo możemy dany program wiele razy odpalić w teorii
         void execute(Pc &, data_vec_t &data_vec) override {
-            auto it = std::lower_bound(data_vec.begin(), data_vec.end(), std::pair<std::string,size_t>{id,0});
+            auto it = std::lower_bound(data_vec.begin(), data_vec.end(),
+                    std::pair<std::string, size_t>{id, 0});
             if (it == data_vec.end() || it->first != id) {
                 throw std::invalid_argument("Brak deklaracji zmiennej, do której "
                         "odwołuje się instrukcja Lea");
@@ -96,6 +95,7 @@ namespace jnp1_6 {
             }
 
         }
+    private:
         std::string id;
     };
 
@@ -116,6 +116,7 @@ namespace jnp1_6 {
         }
         // TODO: unique_ptr, czy shared_ptr? (Jak programy mają być kopiowalne,
         // to chyba musi być shared_ptr?)
+    private:
         std::unique_ptr<Rvalue> addr;
     };
 
@@ -137,6 +138,7 @@ namespace jnp1_6 {
             arg->set(pc, res);
         }
         virtual word_t op(word_t val) = 0;
+    private:
         std::unique_ptr<Lvalue> arg;
     };
 
@@ -167,6 +169,7 @@ namespace jnp1_6 {
             arg1->set(pc, res);
         }
         virtual word_t op(word_t val1, word_t val2) = 0;
+    private:
         std::unique_ptr<Lvalue> arg1;
         std::unique_ptr<Rvalue> arg2;
     };
@@ -196,6 +199,7 @@ namespace jnp1_6 {
             src->execute(pc, data_vec);
             dst->set(pc, src->val());
         }
+    private:
         std::unique_ptr<Lvalue> dst;
         std::unique_ptr<Rvalue> src;
     };
@@ -211,19 +215,20 @@ namespace jnp1_6 {
     class Conditional : public Executable {
     public:
         Conditional(Lvalue *arg) : arg(arg) {}
-        virtual void execute(Pc &pc, data_vec_t &data_vec) override {
+        void execute(Pc &pc, data_vec_t &data_vec) override {
             arg->execute(pc, data_vec);
             if (cond_fulfilled(pc))
                 arg->set(pc, 1);
         }
         virtual bool cond_fulfilled(Pc &pc) = 0;
+    private:
         std::unique_ptr<Lvalue> arg;
     };
 
     class One : public Conditional {
     public:
         One(Lvalue *arg) : Conditional(arg) {}
-        virtual bool cond_fulfilled(Pc &) override {
+        bool cond_fulfilled(Pc &) override {
             return true;
         }
     };
@@ -231,7 +236,7 @@ namespace jnp1_6 {
     class Onez : public Conditional {
     public:
         Onez(Lvalue *arg) : Conditional(arg) {}
-        virtual bool cond_fulfilled(Pc &pc) override {
+        bool cond_fulfilled(Pc &pc) override {
             return pc.zf;
         }
     };
@@ -239,7 +244,7 @@ namespace jnp1_6 {
     class Ones : public Conditional {
     public:
         Ones(Lvalue *arg) : Conditional(arg) {}
-        virtual bool cond_fulfilled(Pc &pc) override {
+        bool cond_fulfilled(Pc &pc) override {
             return pc.sf;
         }
     };
@@ -255,6 +260,7 @@ namespace jnp1_6 {
             pc.arr.at(data_vec.size()) = num->val();
             data_vec.push_back({id, data_vec.size()});
         }
+    private:
         std::string id;
         std::unique_ptr<Num> num;
     };
