@@ -99,7 +99,7 @@ namespace jnp1_6 {
         std::string id;
     };
 
-    class Lvalue : public Rvalue, public Executable {
+    class Lvalue final : public Rvalue, public Executable {
     public:
         Lvalue(Rvalue *addr) : addr(addr) {}
         void execute(Pc &pc, data_vec_t &data_vec) override {
@@ -142,7 +142,7 @@ namespace jnp1_6 {
         std::unique_ptr<Lvalue> arg;
     };
 
-    class Dec : public OneArgOp {
+    class Dec final : public OneArgOp {
     public:
         Dec(Lvalue *arg) : OneArgOp(arg) {}
         word_t op(word_t val) override {
@@ -150,7 +150,7 @@ namespace jnp1_6 {
         }
     };
 
-    class Inc : public OneArgOp {
+    class Inc final : public OneArgOp {
     public:
         Inc(Lvalue *arg) : OneArgOp(arg) {}
         word_t op(word_t val) override {
@@ -174,7 +174,7 @@ namespace jnp1_6 {
         std::unique_ptr<Rvalue> arg2;
     };
 
-    class Add: public TwoArgOp {
+    class Add final : public TwoArgOp {
     public:
         Add(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
         word_t op(word_t val1, word_t val2) override {
@@ -182,7 +182,7 @@ namespace jnp1_6 {
         }
     };
 
-    class Sub : public TwoArgOp {
+    class Sub final : public TwoArgOp {
     public:
         Sub(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
         word_t op(word_t val1, word_t val2) override {
@@ -190,7 +190,7 @@ namespace jnp1_6 {
         }
     };
 
-    class Mov : public Executable {
+    class Mov final : public Executable {
     public:
         // TODO: const przekazywanie wskaźników w konstruktorach?
         Mov(Lvalue *dst, Rvalue *src) : dst(dst), src(src) {}
@@ -205,7 +205,7 @@ namespace jnp1_6 {
     };
 
 
-    class Num : public Rvalue {
+    class Num final : public Rvalue {
     public:
         Num(word_t val) {
             _val = val;
@@ -225,7 +225,7 @@ namespace jnp1_6 {
         std::unique_ptr<Lvalue> arg;
     };
 
-    class One : public Conditional {
+    class One final : public Conditional {
     public:
         One(Lvalue *arg) : Conditional(arg) {}
         bool cond_fulfilled(Pc &) override {
@@ -233,7 +233,7 @@ namespace jnp1_6 {
         }
     };
 
-    class Onez : public Conditional {
+    class Onez final : public Conditional {
     public:
         Onez(Lvalue *arg) : Conditional(arg) {}
         bool cond_fulfilled(Pc &pc) override {
@@ -241,7 +241,7 @@ namespace jnp1_6 {
         }
     };
 
-    class Ones : public Conditional {
+    class Ones final : public Conditional {
     public:
         Ones(Lvalue *arg) : Conditional(arg) {}
         bool cond_fulfilled(Pc &pc) override {
@@ -249,7 +249,7 @@ namespace jnp1_6 {
         }
     };
 
-    class Data : public Loadable {
+    class Data final : public Loadable {
     public:
         Data (const std::string &id, Num *num) : id(id), num(num) {
             if(id.size() < 1 || id.size() > 10){
