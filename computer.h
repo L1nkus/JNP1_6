@@ -49,7 +49,7 @@ public:
 /* protected: */
     friend class program;
     // przekazywanie klasy, czy wektora?
-    virtual void load(Pc &pc, data_vec_t &data_vec) {
+    virtual void load(Pc &, data_vec_t &) {
         /* whatis("other load") */
     }
     /* virtual void set_val(Pc &pc, data_vec_t &data_vec) { */
@@ -57,7 +57,7 @@ public:
     /* } */
 
     /* virtual void execute(Pc &pc) { */
-    virtual void execute(Pc &pc, data_vec_t &data_vec) {
+    virtual void execute(Pc &, data_vec_t &) {
         /* whatis("insexec") */
     }
     // lol, wystarczy tylko w tym miejscu ten jeden virtual destructor, i
@@ -112,7 +112,7 @@ public:
     }
     // wywalenie set_val, i zamiast tego ifowanie tego
     /* void set_val(Pc &pc, data_vec_t &data_vec) override { */
-    void execute(Pc &pc, data_vec_t &data_vec) override {
+    void execute(Pc &, data_vec_t &data_vec) override {
         whatis("lea set_val")
         // make optymalniejsze def
         /* for (size_t i = 0; i < data_vec.size(); ++i) { */
@@ -312,9 +312,6 @@ protected:
 class Conditional : public Executable {
 public:
     Conditional(Mem *arg) : arg(arg) {}
-    /* virtual void set_val(Pc &pc, data_vec_t &data_vec) override { */
-    /*     arg->set_val(pc, data_vec); */
-    /* } */
     virtual void execute(Pc &pc, data_vec_t &data_vec) override {
         arg->execute(pc, data_vec);
         if (cond_fulfilled(pc))
@@ -327,7 +324,7 @@ public:
 class One : public Conditional {
 public:
     One(Mem *arg) : Conditional(arg) {}
-    virtual bool cond_fulfilled(Pc &pc) override {
+    virtual bool cond_fulfilled(Pc &) override {
         return true;
     }
 };
@@ -336,7 +333,6 @@ class Onez : public Conditional {
 public:
     Onez(Mem *arg) : Conditional(arg) {}
     virtual bool cond_fulfilled(Pc &pc) override {
-        whatis(pc.zf)
         return pc.zf;
     }
 };
@@ -345,7 +341,6 @@ class Ones : public Conditional {
 public:
     Ones(Mem *arg) : Conditional(arg) {}
     virtual bool cond_fulfilled(Pc &pc) override {
-        whatis(pc.sf)
         return pc.sf;
     }
 };
