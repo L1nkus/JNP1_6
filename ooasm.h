@@ -191,10 +191,10 @@ class Loadable : public Instruction {
 
 class Data final : public Loadable {
   private:
-    Id id;
     std::shared_ptr<Num> num;
+    Id id;
   public:
-    Data(const char *id, Num *num) : id(id), num(num) {}
+    Data(const char *id, Num *num) : num(num), id(id) {}
     void load(Memory &memory) override {
         memory.add_new_variable(id, num->val(memory));
     }
