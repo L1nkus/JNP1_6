@@ -154,7 +154,7 @@ class Num final : public Rvalue {
   public:
     Num(word_t value) : value(value) {}
 
-    word_t val(Memory &memory) const override {
+    word_t val(Memory &) const override {
         return value;
     }
 };
@@ -261,7 +261,7 @@ class Mov final : public Executable {
     // TODO: const przekazywanie wskaźników w konstruktorach?
     // nie widzę tego, pwartości nie mają wskaźników w sobie ~ab
     Mov(Lvalue *dst, Rvalue *src) : dst(dst), src(src) {}
-    void execute(Processor &processor, Memory &memory) override {
+    void execute(Processor &, Memory &memory) override {
         dst->set(memory, src->val(memory));
     }
 };
@@ -315,13 +315,13 @@ class Loadable : public Instruction {
 
 class Data final : public Loadable {
   private:
+    const char *id;
     std::shared_ptr<Num> num;
   public:
     Data(const char *id, Num *num) : id(id), num(num) {}
     void load(Memory &memory) override {
         memory.add_new_variable(id, num->val(memory));
     }
-    const char *id;
 };
 }
 
