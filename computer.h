@@ -5,21 +5,11 @@
 #include "ooasm_instructions.h"
 #include <memory>
 
-// funkcja vs struct??
-
-// bo to niby trochę odbiega od konwencji, że funkcje są od małej litery, a
-// klasy od dużej - czy może powinnśmy mieć też funkcję program(), która zwraca
-// klasę Program(), aby była spójność stylowa?
-
-// [TODO] przesunac gdzies? zmienic na funkcje?
-class program {
+// [TODO] przesunac gdzies?
+class Program {
   public:
-    program(const std::vector<jnp1_6::Instruction *> &init) {
-        vec.reserve(init.size());
-        for (auto i: init) {
-            vec.push_back(std::shared_ptr<jnp1_6::Instruction>(i));
-        }
-    }
+    Program(std::vector<std::shared_ptr<jnp1_6::Instruction>> &&init) :
+        vec(std::move(init)) {};
   private:
     friend class Computer;
     void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) {
@@ -35,6 +25,15 @@ class program {
     std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
 };
 
+inline Program program(const std::initializer_list<jnp1_6::Instruction *> &init) {
+    std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
+    vec.reserve(init.size());
+    for (auto &i: init) {
+        vec.push_back(std::shared_ptr<jnp1_6::Instruction>(i));
+    }
+    return Program(std::move(vec));
+}
+
 class Computer {
   private:
     jnp1_6::Processor processor;
@@ -42,7 +41,7 @@ class Computer {
   public:
     Computer(jnp1_6::unsigned_word_t mem_size) : memory(mem_size) {}
 
-    void boot(program &p) {
+    void boot(Program &p) {
         p.run(processor, memory);
     }
 
