@@ -1,5 +1,6 @@
 /* #include "ooasm.h" */
 #include "computer.h"
+#include "ooasm.h"
 #include <string>
 #include <sstream>
 #include <cassert>
