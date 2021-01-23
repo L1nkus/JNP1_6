@@ -26,134 +26,176 @@ namespace jnp1_6 {
 
     class Computer;
 
-    using data_vec_t = std::vector<std::pair<std::string, size_t>>; // {klucz stringowy, nr komórki}
+    // [todo] move it
     using word_t = int64_t;
     using unsigned_word_t = std::make_unsigned_t<word_t>;
 
-    // inna nazwa na to?
-    struct Pc {
-        std::vector<word_t> arr;
+    class Id {
+      private:
+        const std::string id;
+      public:
+        Id(const char *id) : id(id) {
+            if (this->id.empty() || this->id.size() > 10) {
+                throw std::invalid_argument("Invalid id length");
+            }
+        }
+
+        const std::string &get_string() const {
+            return id;
+        }
+    };
+
+    // [fixme]
+    class Processor {
+      private:
         bool zf;
         bool sf;
-    };
+      public:
+        Processor() : zf(false), sf(false) {}
 
-    // wsm jakieś ASMelement zamiast Instruction?
-
-    // dużo protected?
-    class Instruction {
-    public:
-        friend class program;
-        // przekazywanie klasy, czy wektora?
-        virtual void load(Pc &, data_vec_t &) {
+        bool get_zero_flag() const {
+            return zf;
         }
 
-        virtual void execute(Pc &, data_vec_t &) {
+        bool get_sign_flag() const {
+            return sf;
         }
 
-        // = default zamiast pustych klamr?
-        virtual ~Instruction() {
+        void set_flags(word_t res) {
+            zf = res == 0;
+            sf = res < 0;
         }
     };
 
-    class Executable : public virtual Instruction {
-    protected:
-        virtual void execute(Pc &pc, data_vec_t &data_vec) = 0;
-    };
+    class Memory {
+      private:
+        // holds pair {variable name, memory address}
+        using data_t = std::pair<std::string, size_t>;
 
-    // nazwa?
-    // TODO: czy tutaj zostawić virtual? Bo nie musi być, gdyż Load tylko od tego
-    // Loadable dziedziczy, czyli nie ma żadnego diamentu
-    class Loadable : public virtual Instruction {
-    protected:
-        virtual void load(Pc &pc, data_vec_t &data_vec) = 0;
-    };
+        std::vector<data_t> variables_register;
+        std::vector<word_t> variables;
 
-    class Rvalue : public virtual Instruction {
-    public:
-        word_t val(){
-            return _val;
+      public:
+        Memory() = default;
+
+        word_t value_at(unsigned_word_t pos) const {
+            return variables[pos];
         }
-        word_t _val;
-    };
 
-    class Lea : public Rvalue, public Executable {
-    public:
-        Lea(const std::string &id) : id(id) {
-            if(id.size() < 1 || id.size() > 10){
-                throw std::invalid_argument("Nieprawidłowa długość identyfikatora");
-            }
-        }
-        // Ifowanie, jak już był ustawiony?
-        // Bo możemy dany program wiele razy odpalić w teorii
-        void execute(Pc &, data_vec_t &data_vec) override {
-            auto it = std::lower_bound(data_vec.begin(), data_vec.end(), std::pair<std::string,size_t>{id,0});
-            if (it == data_vec.end() || it->first != id) {
-                throw std::invalid_argument("Brak deklaracji zmiennej, do której "
-                        "odwołuje się instrukcja Lea");
+        unsigned_word_t find_variable_address(const Id &id) const {
+            // Because ids are short, it is faster than using an unordered map.
+            auto it = std::lower_bound(variables_register.begin(),
+                                       variables_register.end(),
+                                       std::pair<std::string,size_t>{id.get_string(),0});
+            if (it == variables_register.end() || it->first != id.get_string()) {
+                throw std::invalid_argument("Variable " + id.get_string() +
+                    " is not defined.");
             }
             else {
-                _val = it->second;
+                return it->second;
             }
-
         }
-        std::string id;
     };
 
-    class Lvalue : public Rvalue, public Executable {
+    class Instruction {
     public:
-        Lvalue(Rvalue *addr) : addr(addr) {}
-        void execute(Pc &pc, data_vec_t &data_vec) override {
-            // TODO upewnij się, że all rvalue mają execute (bo mem może być jako
-            // rvalue, a on potrzebuje execute)
-            addr->execute(pc, data_vec);
-            _val = pc.arr.at(cell_pos());
-        }
-        unsigned_word_t cell_pos() {
-            return addr->val();
-        }
-        void set(Pc &pc, word_t nval) {
-            pc.arr.at(cell_pos()) = nval;
-        }
-        // TODO: unique_ptr, czy shared_ptr? (Jak programy mają być kopiowalne,
-        // to chyba musi być shared_ptr?)
-        std::unique_ptr<Rvalue> addr;
+        virtual void load(Memory &) = 0;
+
+        virtual void execute(Processor &, Memory &) = 0;
+
+        virtual ~Instruction() = 0;
     };
 
-    // TODO: Czy wszystkie funkcje w headerze powinny być inline?
-    // (YouCompleteMe mi je podreśla, ale przy kompilacji nie ma warninga)
-    void setflags(Pc &pc, word_t res) {
-        pc.zf = res == 0;
-        pc.sf = res < 0;
-    }
+    class Executable : public Instruction {
+        void load(Memory &) override {} //[todo] test if works
+    };
+
+    class Loadable : public Instruction {
+        void execute(Processor &, Memory &) override {}//[todo] test if works
+    };
+
+    class Rvalue {
+      public:
+        virtual word_t val(Memory &) const = 0;
+    };
+
+    // Note: This is based on the observation that all Lvalues are also Pvalues.
+    // Since the definitions of those are not specified enough,
+    // we assume that it is true for all Lvalues.
+    // Otherwise, another interface combining those two should be made.
+    class Lvalue : public Rvalue {
+      public:
+        virtual void set(Memory &, word_t) = 0;
+    };
+
+    class Num : public Rvalue {
+      private:
+        const word_t value;
+      public:
+        Num(word_t value) : value(value) {}
+
+        word_t val(Memory &memory) const override {
+            return value;
+        }
+    };
+
+    class Lea : public Rvalue {
+      private:
+        const Id id;
+      public:
+        Lea(const char *id) : id(id) {}
+
+        word_t val(Memory &memory) const override {
+            return memory.find_variable_address(id);
+        }
+    };
+
+    class Mem : public Lvalue {
+      public:
+        Mem(Rvalue *addr) : addr(addr) {}
+
+        word_t val(Memory &memory) const override {
+            return addr->val(memory);
+        }
+
+        void set(Memory &, word_t) override {
+
+        }
+        // TODO: zmieniłem z unique na shared ~ab
+        std::shared_ptr<Rvalue> addr;
+    };
 
     class OneArgOp : public Executable {
-    public:
-        OneArgOp(Lvalue *arg) : arg(arg) {}
-        // still virtual? jak z tym
-        void execute(Pc &pc, data_vec_t &data_vec) override {
-            arg->execute(pc, data_vec);
-            word_t res = op(arg->val());
-            setflags(pc, res);
-            arg->set(pc, res);
-        }
+      private:
+        std::shared_ptr<Lvalue> arg;
+      protected:
         virtual word_t op(word_t val) = 0;
-        std::unique_ptr<Lvalue> arg;
+      public:
+        OneArgOp(Lvalue *arg) : arg(arg) {}
+
+        void execute(Processor &processor, Memory &memory) override {
+            word_t res = op(arg->val(memory));
+            processor.set_flags(res);
+            arg->set(memory, res);
+        }
     };
 
     class Dec : public OneArgOp {
-    public:
-        Dec(Lvalue *arg) : OneArgOp(arg) {}
+      protected:
         word_t op(word_t val) override {
             return val - 1;
         }
+      public:
+        Dec(Lvalue *arg) : OneArgOp(arg) {}
     };
 
     class Inc : public OneArgOp {
-    public:
-        Inc(Lvalue *arg) : OneArgOp(arg) {}
+      protected:
         word_t op(word_t val) override {
             return val + 1;
         }
+      public:
+        Inc(Lvalue *arg) : OneArgOp(arg) {}
     };
 
     class TwoArgOp : public Executable {
@@ -198,14 +240,6 @@ namespace jnp1_6 {
         }
         std::unique_ptr<Lvalue> dst;
         std::unique_ptr<Rvalue> src;
-    };
-
-
-    class Num : public Rvalue {
-    public:
-        Num(word_t val) {
-            _val = val;
-        }
     };
 
     class Conditional : public Executable {
@@ -265,10 +299,10 @@ jnp1_6::Mov *mov(jnp1_6::Lvalue *dst, jnp1_6::Rvalue *src) {
 }
 
 jnp1_6::Lvalue *mem(jnp1_6::Rvalue *addr) {
-    return new jnp1_6::Lvalue(addr);
+    return new jnp1_6::Mem(addr);
 }
 
-jnp1_6::Lea *lea(const std::string &id) {
+jnp1_6::Lea *lea(const char *id) {
     return new jnp1_6::Lea(id);
 }
 
@@ -346,7 +380,7 @@ public:
     }
     void boot(program &p) {
         std::fill(pc.arr.begin(), pc.arr.end(), 0);
-        pc.sf = pc.zf = 0;
+        pc.sf = pc.zf = false;
         // przekazywanie klasy, czy wektora?
         p.run(pc);
     }
