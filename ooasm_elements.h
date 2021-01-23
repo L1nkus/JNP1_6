@@ -1,7 +1,8 @@
-#ifndef JNP1_6_OOASM_ELEMENTS_H_
-#define JNP1_6_OOASM_ELEMENTS_H_
+#ifndef JNP1_6_OOASM_ELEMENTS_H
+#define JNP1_6_OOASM_ELEMENTS_H
 
 #include "ooasm_types.h"
+#include "computer_parts.h"
 
 namespace jnp1_6 {
 
@@ -59,4 +60,4 @@ class Mem final : public Lvalue {
 };
 }
 
-#endif //JNP1_6_OOASM_ELEMENTS_H_
+#endif // JNP1_6_OOASM_ELEMENTS_H

@@ -1,5 +1,5 @@
-#ifndef JNP1_6_OOASM_INSTRUCTION_H_
-#define JNP1_6_OOASM_INSTRUCTION_H_
+#ifndef JNP1_6_OOASM_INSTRUCTION_H
+#define JNP1_6_OOASM_INSTRUCTION_H
 
 #include "computer_parts.h"
 #include "ooasm_elements.h"
@@ -154,4 +154,4 @@ class Data final : public Loadable {
     }
 };
 }
-#endif //JNP1_6_OOASM_INSTRUCTION_H_
+#endif //JNP1_6_OOASM_INSTRUCTION_H

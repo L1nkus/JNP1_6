@@ -1,5 +1,5 @@
-#ifndef JNP1_6_OOASM_BASICS_H_
-#define JNP1_6_OOASM_BASICS_H_
+#ifndef JNP1_6_OOASM_BASICS_H
+#define JNP1_6_OOASM_BASICS_H
 
 #include <memory>
 #include <stdexcept>
@@ -25,4 +25,4 @@ class Id {
 };
 }
 
-#endif //JNP1_6_OOASM_BASICS_H_
+#endif // JNP1_6_OOASM_BASICS_H

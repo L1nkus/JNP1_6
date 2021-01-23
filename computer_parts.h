@@ -1,9 +1,10 @@
-#ifndef JNP1_6_COMPUTER_PARTS_H_
-#define JNP1_6_COMPUTER_PARTS_H_
+#ifndef JNP1_6_COMPUTER_PARTS_H
+#define JNP1_6_COMPUTER_PARTS_H
 
 #include "ooasm_types.h"
 #include <ostream>
 #include <algorithm>
+#include <vector>
 
 namespace jnp1_6 {
 class Processor {
@@ -78,4 +79,4 @@ class Memory {
     }
 };
 }
-#endif //JNP1_6_COMPUTER_PARTS_H_
+#endif // JNP1_6_COMPUTER_PARTS_H
