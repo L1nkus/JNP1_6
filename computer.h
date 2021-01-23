@@ -67,6 +67,7 @@ namespace jnp1_6 {
         }
     };
 
+    // [TODO]: Sugestia - zamienić stringi na id?
     class Memory {
       private:
         // holds pair {variable name, memory address}
@@ -76,12 +77,16 @@ namespace jnp1_6 {
         std::vector<word_t> variables;
 
       public:
-        Memory() = default;
+        Memory(unsigned_word_t mem_size) {
+            variables.resize(mem_size, 0);
+        }
 
         word_t value_at(unsigned_word_t pos) const {
             return variables[pos];
         }
 
+        //[TODO] jeśli jest kilka zmiennych o takiej samej nazwie
+        // to powinniśmy wybierać tę pierwszą, na pewno to mamy?
         unsigned_word_t find_variable_address(const Id &id) const {
             // Because ids are short, it is faster than using an unordered map.
             auto it = std::lower_bound(variables_register.begin(),
@@ -94,6 +99,21 @@ namespace jnp1_6 {
             else {
                 return it->second;
             }
+        }
+
+        void add_new_variable(const Id &id, word_t value) {
+            variables[variables_register.size()] = value;
+            variables_register.emplace_back(id.get_string(), variables_register.size());
+        }
+
+        void finish_loading_variables() const {
+            // So that we can use binary search to find the key.
+            std::sort(variables_register.begin(), variables_register.end());
+        }
+
+        void dump(std::ostream &os) const {
+            for (auto const &num: variables)
+                os << num << ' ';
         }
     };
 
@@ -108,10 +128,6 @@ namespace jnp1_6 {
 
     class Executable : public Instruction {
         void load(Memory &) override {} //[todo] test if works
-    };
-
-    class Loadable : public Instruction {
-        void execute(Processor &, Memory &) override {}//[todo] test if works
     };
 
     class Rvalue {
@@ -199,97 +215,105 @@ namespace jnp1_6 {
     };
 
     class TwoArgOp : public Executable {
+      private:
+        std::shared_ptr<Lvalue> arg1;
+        std::shared_ptr<Rvalue> arg2;
+      protected:
+        virtual word_t op(word_t val1, word_t val2) = 0;
     public:
         TwoArgOp(Lvalue *arg1, Rvalue *arg2) : arg1(arg1), arg2(arg2) {}
-        void execute(Pc &pc, data_vec_t &data_vec) override {
-            arg1->execute(pc, data_vec);
-            arg2->execute(pc, data_vec);
-            word_t res = op(arg1->val(), arg2->val());
-            setflags(pc, res);
-            arg1->set(pc, res);
+        void execute(Processor &processor, Memory &memory) override {
+            word_t res = op(arg1->val(memory), arg2->val(memory));
+            processor.set_flags(res);
+            arg1->set(memory, res);
         }
-        virtual word_t op(word_t val1, word_t val2) = 0;
-        std::unique_ptr<Lvalue> arg1;
-        std::unique_ptr<Rvalue> arg2;
     };
 
     class Add: public TwoArgOp {
-    public:
-        Add(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
+      protected:
         word_t op(word_t val1, word_t val2) override {
             return val1 + val2;
         }
+      public:
+        Add(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
     };
 
     class Sub : public TwoArgOp {
-    public:
-        Sub(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
+      protected:
         word_t op(word_t val1, word_t val2) override {
             return val1 - val2;
         }
+      public:
+        Sub(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
     };
 
     class Mov : public Executable {
-    public:
-        // TODO: const przekazywanie wskaźników w konstruktorach?
-        Mov(Lvalue *dst, Rvalue *src) : dst(dst), src(src) {}
-        void execute(Pc &pc, data_vec_t &data_vec) override {
-            dst->execute(pc, data_vec);
-            src->execute(pc, data_vec);
-            dst->set(pc, src->val());
-        }
+      private:
         std::unique_ptr<Lvalue> dst;
         std::unique_ptr<Rvalue> src;
+      public:
+        // TODO: const przekazywanie wskaźników w konstruktorach?
+        // nie widzę tego, pwartości nie mają wskaźników w sobie ~ab
+        Mov(Lvalue *dst, Rvalue *src) : dst(dst), src(src) {}
+        void execute(Processor &processor, Memory &memory) override {
+            dst->set(memory, src->val(memory));
+        }
     };
 
+    // [TODO]: Do rozważenia - dziedziczenie po OneArgOp
     class Conditional : public Executable {
-    public:
-        Conditional(Lvalue *arg) : arg(arg) {}
-        virtual void execute(Pc &pc, data_vec_t &data_vec) override {
-            arg->execute(pc, data_vec);
-            if (cond_fulfilled(pc))
-                arg->set(pc, 1);
-        }
-        virtual bool cond_fulfilled(Pc &pc) = 0;
+      private:
         std::unique_ptr<Lvalue> arg;
+      protected:
+        virtual bool cond_fulfilled(Processor &) = 0;
+      public:
+        Conditional(Lvalue *arg) : arg(arg) {}
+
+        void execute(Processor &processor, Memory &memory) override {
+            if (cond_fulfilled(processor))
+                arg->set(memory, 1);
+        }
     };
 
     class One : public Conditional {
-    public:
-        One(Lvalue *arg) : Conditional(arg) {}
-        virtual bool cond_fulfilled(Pc &) override {
+      protected:
+        // [TODO]: Nie jestem przekonany, czy to dobrze. Do rozważenia na potem.
+        bool cond_fulfilled(Processor &) override {
             return true;
         }
+      public:
+        One(Lvalue *arg) : Conditional(arg) {}
     };
 
     class Onez : public Conditional {
-    public:
-        Onez(Lvalue *arg) : Conditional(arg) {}
-        virtual bool cond_fulfilled(Pc &pc) override {
-            return pc.zf;
+      protected:
+        bool cond_fulfilled(Processor &processor) override {
+            return processor.get_zero_flag();
         }
+      public:
+        Onez(Lvalue *arg) : Conditional(arg) {}
     };
 
     class Ones : public Conditional {
-    public:
-        Ones(Lvalue *arg) : Conditional(arg) {}
-        virtual bool cond_fulfilled(Pc &pc) override {
-            return pc.sf;
+      protected:
+        bool cond_fulfilled(Processor &processor) override {
+            return processor.get_sign_flag();
         }
+      public:
+        Ones(Lvalue *arg) : Conditional(arg) {}
+    };
+
+    class Loadable : public Instruction {
+        void execute(Processor &, Memory &) override {}//[todo] test if works
     };
 
     class Data : public Loadable {
-    public:
-        Data (const std::string &id, Num *num) : id(id), num(num) {
-            if(id.size() < 1 || id.size() > 10){
-                throw std::invalid_argument("Nieprawidłowa długość identyfikatora");
-            }
+      public:
+        Data (const char *id, Num *num) : id(id), num(num) {}
+        void load(Memory &memory) override {
+            memory.add_new_variable(id, num->val(memory));
         }
-        void load(Pc &pc, data_vec_t &data_vec) override {
-            pc.arr.at(data_vec.size()) = num->val();
-            data_vec.push_back({id, data_vec.size()});
-        }
-        std::string id;
+        const char *id;
         std::unique_ptr<Num> num;
     };
 }
@@ -322,7 +346,7 @@ jnp1_6::Sub *sub(jnp1_6::Lvalue *arg1, jnp1_6::Rvalue *arg2) {
     return new jnp1_6::Sub(arg1, arg2);
 }
 
-jnp1_6::Data *data(const std::string &id, jnp1_6::Num *num) {
+jnp1_6::Data *data(const char *id, jnp1_6::Num *num) {
     return new jnp1_6::Data(id, num);
 }
 
@@ -350,6 +374,7 @@ jnp1_6::Num *num(jnp1_6::word_t num) {
 
 class program {
 public:
+    // [TODO] Zrobić konstruktor z initiazer_list (?)
     program(const std::vector<jnp1_6::Instruction*> &init) {
         vec.reserve(init.size());
         for(auto i: init){
@@ -358,43 +383,33 @@ public:
     }
 private:
     friend class Computer;
-    void run(jnp1_6::Pc &pc) {
-        jnp1_6::data_vec_t label_vec;
+    void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) {
         for (auto &i: vec){
-            i->load(pc, label_vec);
+            i->load(memory);
         }
-        // Abyśmy mogli wyszukiwać binarnie klucz.
-        std::sort(label_vec.begin(), label_vec.end());
+        memory.finish_loading_variables();
+
         for (auto &i: vec){
-            i->execute(pc, label_vec);
+            i->execute(processor, memory);
         }
     }
     std::vector<std::unique_ptr<jnp1_6::Instruction>> vec;
 };
 
 class Computer {
-public:
-    Computer(jnp1_6::unsigned_word_t mem_size) {
-        this->mem_size = mem_size;
-        pc.arr.resize(mem_size);
-    }
+  private:
+    jnp1_6::Processor processor;
+    jnp1_6::Memory memory;
+  public:
+    Computer(jnp1_6::unsigned_word_t mem_size) : memory(mem_size) {}
+
     void boot(program &p) {
-        std::fill(pc.arr.begin(), pc.arr.end(), 0);
-        pc.sf = pc.zf = false;
-        // przekazywanie klasy, czy wektora?
-        p.run(pc);
+        p.run(processor, memory);
     }
+
     void memory_dump(std::ostream &os) const {
-        /* for (auto const &num: arr) */
-        // funkcja tego structa może?
-        for (auto const &num: pc.arr)
-            os << num << ' ';
+        memory.dump(os);
     }
-private:
-    // oddzielne "Memory"?
-    jnp1_6::unsigned_word_t mem_size;
-    // inna nazwa?
-    jnp1_6::Pc pc;
 };
 
 #endif // JNP1_6_COMPUTER_H
