@@ -81,11 +81,11 @@ class Memory {
     }
 
     word_t value_at(unsigned_word_t pos) const {
-        return variables[pos];
+        // Note: std::vector.at() throws std::out_of_range,
+        // while operator[] does not.
+        return variables.at(pos);
     }
 
-    //[TODO] jeśli jest kilka zmiennych o takiej samej nazwie
-    // to powinniśmy wybierać tę pierwszą, na pewno to mamy?
     unsigned_word_t find_variable_address(const Id &id) const {
         // Because ids are short, it is faster than using an unordered map.
         auto it = std::lower_bound(variables_register.begin(),
@@ -100,12 +100,12 @@ class Memory {
     }
 
     void add_new_variable(const Id &id, word_t value) {
-        variables[variables_register.size()] = value;
+        variables.at(variables_register.size()) = value;
         variables_register.emplace_back(id.get_string(), variables_register.size());
     }
 
     void set_value(unsigned_word_t pos, word_t value) {
-        variables[pos] = value;
+        variables.at(pos) = value;
     }
 
     void finish_loading_variables() {
@@ -139,7 +139,7 @@ class Rvalue {
     virtual ~Rvalue() = default;
 };
 
-// Note: This is based on the observation that all Lvalues are also Pvalues.
+// Note: This is based on the observation that all Lvalues are also Rvalues.
 // Since the definitions of those are not specified enough,
 // we assume that it is true for all Lvalues.
 // Otherwise, another interface combining those two should be made.
@@ -315,7 +315,7 @@ class Loadable : public Instruction {
 
 class Data final : public Loadable {
   private:
-    const char *id;
+    Id id;
     std::shared_ptr<Num> num;
   public:
     Data(const char *id, Num *num) : id(id), num(num) {}
