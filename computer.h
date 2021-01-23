@@ -23,8 +23,6 @@
 // TODO indent?
 namespace jnp1_6 {
 
-class Computer;
-
 // [todo] move it
 using word_t = int64_t;
 using unsigned_word_t = std::make_unsigned_t<word_t>;
@@ -44,7 +42,6 @@ class Id {
     }
 };
 
-// [fixme]
 class Processor {
   private:
     bool zf;
@@ -66,13 +63,12 @@ class Processor {
     }
 };
 
-// [TODO]: Sugestia - zamienić stringi na id?
 class Memory {
   private:
-    // holds pair {variable name, memory address}
-    using data_t = std::pair<std::string, size_t>;
+    // Holds pair {variable name, memory address}.
+    using variable_t = std::pair<std::string, size_t>;
 
-    std::vector<data_t> variables_register;
+    std::vector<variable_t> variables_register;
     std::vector<word_t> variables;
 
   public:
@@ -171,7 +167,6 @@ class Lea final : public Rvalue {
 };
 
 class Mem final : public Lvalue {
-    // TODO: zmieniłem z unique na shared ~ab
   private:
     std::shared_ptr<Rvalue> addr;
   public:
@@ -227,6 +222,7 @@ class TwoArgOp : public Executable {
     virtual word_t op(word_t val1, word_t val2) = 0;
   public:
     TwoArgOp(Lvalue *arg1, Rvalue *arg2) : arg1(arg1), arg2(arg2) {}
+
     void execute(Processor &processor, Memory &memory) override {
         word_t res = op(arg1->val(memory), arg2->val(memory));
         processor.set_flags(res);
@@ -252,21 +248,18 @@ class Sub final : public TwoArgOp {
     Sub(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
 };
 
-//[TODO] Change to inherit from TwoArgOp. Now go to sleep...
 class Mov final : public Executable {
   private:
     std::shared_ptr<Lvalue> dst;
     std::shared_ptr<Rvalue> src;
   public:
-    // TODO: const przekazywanie wskaźników w konstruktorach?
-    // nie widzę tego, pwartości nie mają wskaźników w sobie ~ab
     Mov(Lvalue *dst, Rvalue *src) : dst(dst), src(src) {}
+
     void execute(Processor &, Memory &memory) override {
         dst->set(memory, src->val(memory));
     }
 };
 
-// [TODO]: Do rozważenia - dziedziczenie po OneArgOp
 class Conditional : public Executable {
   private:
     std::shared_ptr<Lvalue> arg;
@@ -283,7 +276,6 @@ class Conditional : public Executable {
 
 class One final : public Conditional {
   protected:
-    // [TODO]: Nie jestem przekonany, czy to dobrze. Do rozważenia na potem.
     bool cond_fulfilled(Processor &) override {
         return true;
     }
@@ -338,12 +330,12 @@ jnp1_6::Lea *lea(const char *id) {
     return new jnp1_6::Lea(id);
 }
 
-jnp1_6::Inc *inc(jnp1_6::Lvalue *mem) {
-    return new jnp1_6::Inc(mem);
+jnp1_6::Inc *inc(jnp1_6::Lvalue *lvalue) {
+    return new jnp1_6::Inc(lvalue);
 }
 
-jnp1_6::Dec *dec(jnp1_6::Lvalue *mem) {
-    return new jnp1_6::Dec(mem);
+jnp1_6::Dec *dec(jnp1_6::Lvalue *lvalue) {
+    return new jnp1_6::Dec(lvalue);
 }
 
 jnp1_6::Add *add(jnp1_6::Lvalue *arg1, jnp1_6::Rvalue *arg2) {
@@ -370,8 +362,8 @@ jnp1_6::Ones *ones(jnp1_6::Lvalue *arg) {
     return new jnp1_6::Ones(arg);
 }
 
-jnp1_6::Num *num(jnp1_6::word_t num) {
-    return new jnp1_6::Num(num);
+jnp1_6::Num *num(jnp1_6::word_t value) {
+    return new jnp1_6::Num(value);
 }
 
 // funkcja vs struct??
