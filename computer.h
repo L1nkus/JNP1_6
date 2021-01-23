@@ -20,8 +20,7 @@
 
 // część rzeczy do przeniesienia do ooasm.h
 
-// execute, set_val/load
-
+// TODO indent?
 namespace jnp1_6 {
 
 class Computer;
@@ -109,10 +108,8 @@ class Memory {
         variables[pos] = value;
     }
 
-    void finish_loading_variables() const {
-        // [TODO] DOES NOT COMPILE!
-        // So that we can use binary search to find the key.
-        //std::sort(variables_register.begin(), variables_register.end());
+    void finish_loading_variables() {
+        std::sort(variables_register.begin(), variables_register.end());
     }
 
     void dump(std::ostream &os) const {
@@ -172,6 +169,9 @@ class Lea final : public Rvalue {
 };
 
 class Mem final : public Lvalue {
+    // TODO: zmieniłem z unique na shared ~ab
+  private:
+    std::shared_ptr<Rvalue> addr;
   public:
     Mem(Rvalue *addr) : addr(addr) {}
 
@@ -182,8 +182,6 @@ class Mem final : public Lvalue {
     void set(Memory &memory, word_t value) override {
         memory.set_value(addr->val(memory), value);
     }
-    // TODO: zmieniłem z unique na shared ~ab
-    std::shared_ptr<Rvalue> addr;
 };
 
 class OneArgOp : public Executable {
@@ -255,8 +253,8 @@ class Sub final : public TwoArgOp {
 //[TODO] Change to inherit from TwoArgOp. Now go to sleep...
 class Mov final : public Executable {
   private:
-    std::unique_ptr<Lvalue> dst;
-    std::unique_ptr<Rvalue> src;
+    std::shared_ptr<Lvalue> dst;
+    std::shared_ptr<Rvalue> src;
   public:
     // TODO: const przekazywanie wskaźników w konstruktorach?
     // nie widzę tego, pwartości nie mają wskaźników w sobie ~ab
@@ -269,7 +267,7 @@ class Mov final : public Executable {
 // [TODO]: Do rozważenia - dziedziczenie po OneArgOp
 class Conditional : public Executable {
   private:
-    std::unique_ptr<Lvalue> arg;
+    std::shared_ptr<Lvalue> arg;
   protected:
     virtual bool cond_fulfilled(Processor &) = 0;
   public:
@@ -314,16 +312,18 @@ class Loadable : public Instruction {
 };
 
 class Data final : public Loadable {
+  private:
+    std::shared_ptr<Num> num;
   public:
     Data(const char *id, Num *num) : id(id), num(num) {}
     void load(Memory &memory) override {
         memory.add_new_variable(id, num->val(memory));
     }
     const char *id;
-    std::unique_ptr<Num> num;
 };
 }
 
+// TODO, czy funkcje powinny być inline?
 jnp1_6::Mov *mov(jnp1_6::Lvalue *dst, jnp1_6::Rvalue *src) {
     return new jnp1_6::Mov(dst, src);
 }
@@ -384,7 +384,7 @@ class program {
     program(const std::vector<jnp1_6::Instruction *> &init) {
         vec.reserve(init.size());
         for (auto i: init) {
-            vec.push_back(std::unique_ptr<jnp1_6::Instruction>(i));
+            vec.push_back(std::shared_ptr<jnp1_6::Instruction>(i));
         }
     }
   private:
@@ -399,7 +399,7 @@ class program {
             i->execute(processor, memory);
         }
     }
-    std::vector<std::unique_ptr<jnp1_6::Instruction>> vec;
+    std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
 };
 
 class Computer {
