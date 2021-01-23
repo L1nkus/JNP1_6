@@ -1,7 +1,9 @@
 #ifndef JNP1_6_COMPUTER_PARTS_H_
 #define JNP1_6_COMPUTER_PARTS_H_
 
-#include "ooasm_basics.h"
+#include "ooasm_types.h"
+#include <ostream>
+#include <algorithm>
 
 namespace jnp1_6 {
 class Processor {

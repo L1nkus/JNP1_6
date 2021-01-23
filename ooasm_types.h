@@ -1,19 +1,9 @@
 #ifndef JNP1_6_OOASM_BASICS_H_
 #define JNP1_6_OOASM_BASICS_H_
 
-#include <cstdint>
-#include <algorithm>
-#include <cstddef>
-#include <initializer_list>
-#include <utility>
-#include <vector>
-#include <list>
-#include <tuple>
-#include <functional>
-#include <type_traits>
+#include <memory>
 #include <stdexcept>
-#include <limits>
-#include <iostream> // do uproszczenia
+
 
 namespace jnp1_6 {
 using word_t = int64_t;

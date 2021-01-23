@@ -2,10 +2,8 @@
 #define JNP1_6_COMPUTER_H
 
 #include "computer_parts.h"
-#include "ooasm_instruction.h"
+#include "ooasm_instructions.h"
 #include <memory>
-
-#define whatis(x) std::cerr << #x << " is " << (x) << std::endl;
 
 // funkcja vs struct??
 
@@ -13,9 +11,9 @@
 // klasy od dużej - czy może powinnśmy mieć też funkcję program(), która zwraca
 // klasę Program(), aby była spójność stylowa?
 
+// [TODO] przesunac gdzies? zmienic na funkcje?
 class program {
   public:
-    // [TODO] Zrobić konstruktor z initiazer_list (?)
     program(const std::vector<jnp1_6::Instruction *> &init) {
         vec.reserve(init.size());
         for (auto i: init) {
