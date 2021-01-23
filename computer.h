@@ -135,6 +135,8 @@ class Executable : public Instruction {
 class Rvalue {
   public:
     virtual word_t val(Memory &) const = 0;
+
+    virtual ~Rvalue() = default;
 };
 
 // Note: This is based on the observation that all Lvalues are also Pvalues.
