@@ -53,7 +53,9 @@ class Memory {
     }
 
     unsigned_word_t find_variable_address(const Id &id) const {
-        // Because ids are short, it is faster than using an unordered map.
+        // We use binary search to find the right address.
+        // It always finds the first variable with given name.
+        // Because ids are short, it should be faster than using an unordered map.
         auto it = std::lower_bound(variables_register.begin(),
                                    variables_register.end(),
                                    std::pair<std::string, size_t>{id.get_string(), 0});
