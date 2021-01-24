@@ -1,15 +1,16 @@
-#ifndef JNP1_6_PROGRAM_H_
-#define JNP1_6_PROGRAM_H_
+#ifndef JNP1_6_PROGRAM_H
+#define JNP1_6_PROGRAM_H
 
 #include "computer_parts.h"
 #include "ooasm_instructions.h"
+#include <initializer_list>
 
 namespace jnp1_6 {
 class Program {
   private:
-    std::vector<InstructionPtr> vec;
+    const std::vector<InstructionPtr> vec;
   public:
-    Program(std::vector<InstructionPtr> &&init) :
+    Program(const std::vector<InstructionPtr> &&init) :
         vec(std::move(init)) {};
 
     void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) {
@@ -27,4 +28,4 @@ class Program {
 }
 
 jnp1_6::Program program(const std::initializer_list<jnp1_6::InstructionPtr> &&init);
-#endif //JNP1_6_PROGRAM_H_
+#endif // JNP1_6_PROGRAM_H

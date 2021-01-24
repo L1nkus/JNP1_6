@@ -28,5 +28,4 @@ jnp1_6::InstructionPtr onez(jnp1_6::LvaluePtr &&arg);
 
 jnp1_6::InstructionPtr ones(jnp1_6::LvaluePtr &&arg);
 
-
 #endif // JNP1_6_OOASM_H

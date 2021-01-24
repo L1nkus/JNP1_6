@@ -42,10 +42,8 @@ class Memory {
     }
 
     void reset_memory() {
-        variables_register = std::vector<variable_t>();
-        for (auto &var : variables) {
-            var = 0;
-        }
+        variables_register.clear();
+        std::fill(variables.begin(), variables.end(), 0);
     }
 
     word_t value_at(unsigned_word_t pos) const {

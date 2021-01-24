@@ -45,5 +45,5 @@ jnp1_6::InstructionPtr onez(jnp1_6::LvaluePtr &&arg) {
 }
 
 jnp1_6::InstructionPtr ones(jnp1_6::LvaluePtr &&arg) {
-    return std::make_shared<jnp1_6::Ones>(std::move(std::move(arg)));
+    return std::make_shared<jnp1_6::Ones>(std::move(arg));
 }

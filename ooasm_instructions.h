@@ -157,4 +157,4 @@ class Data final : public Loadable {
     }
 };
 }
-#endif //JNP1_6_OOASM_INSTRUCTION_H
+#endif // JNP1_6_OOASM_INSTRUCTION_H
