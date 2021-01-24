@@ -4,7 +4,6 @@
 #include <memory>
 #include <stdexcept>
 
-
 namespace jnp1_6 {
 using word_t = int64_t;
 using unsigned_word_t = std::make_unsigned_t<word_t>;

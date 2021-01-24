@@ -13,10 +13,10 @@ class Rvalue {
     virtual ~Rvalue() = default;
 };
 
-// Note: This is based on the observation that all Lvalues are also Rvalues.
+// Note: This inheritance is based on the observation that all Lvalues are also Rvalues.
 // Since the definitions of those are not specified enough,
 // we assume that it is true for all Lvalues.
-// Otherwise, another interface combining those two should be made.
+// In other case, another interface combining those two should be made.
 class Lvalue : public Rvalue {
   public:
     virtual void set(Memory &, word_t) = 0;
