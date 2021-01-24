@@ -7,9 +7,9 @@
 namespace jnp1_6 {
 class Program {
   private:
-    std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
+    std::vector<InstructionPtr> vec;
   public:
-    Program(std::vector<std::shared_ptr<jnp1_6::Instruction>> &&init) :
+    Program(std::vector<InstructionPtr> &&init) :
         vec(std::move(init)) {};
 
     void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) {
@@ -26,5 +26,5 @@ class Program {
 };
 }
 
-jnp1_6::Program program(const std::initializer_list<jnp1_6::Instruction *> &init);
+jnp1_6::Program program(const std::initializer_list<jnp1_6::InstructionPtr> &&init);
 #endif //JNP1_6_PROGRAM_H_

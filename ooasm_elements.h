@@ -22,6 +22,9 @@ class Lvalue : public Rvalue {
     virtual void set(Memory &, word_t) = 0;
 };
 
+using RvaluePtr = std::shared_ptr<Rvalue>;
+using LvaluePtr = std::shared_ptr<Lvalue>;
+
 class Num final : public Rvalue {
   private:
     const word_t value;
@@ -46,9 +49,9 @@ class Lea final : public Rvalue {
 
 class Mem final : public Lvalue {
   private:
-    std::shared_ptr<Rvalue> addr;
+    RvaluePtr addr;
   public:
-    Mem(Rvalue *addr) : addr(addr) {}
+    Mem(RvaluePtr &&addr) : addr(std::move(addr)) {}
 
     word_t val(Memory &memory) const override {
         return memory.value_at(addr->val(memory));
@@ -58,6 +61,8 @@ class Mem final : public Lvalue {
         memory.set_value(addr->val(memory), value);
     }
 };
+
+using NumPtr = std::shared_ptr<Num>;
 }
 
 #endif // JNP1_6_OOASM_ELEMENTS_H

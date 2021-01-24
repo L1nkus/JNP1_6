@@ -5,6 +5,7 @@
 #include "ooasm_elements.h"
 
 namespace jnp1_6 {
+
 class Instruction {
   public:
     virtual void load(Memory &) = 0;
@@ -14,6 +15,8 @@ class Instruction {
     virtual ~Instruction() = default;
 };
 
+using InstructionPtr = std::shared_ptr<Instruction>;
+
 class Executable : public Instruction {
   public:
     void load(Memory &) override {}
@@ -21,11 +24,11 @@ class Executable : public Instruction {
 
 class OneArgOp : public Executable {
   private:
-    std::shared_ptr<Lvalue> arg;
+    LvaluePtr arg;
   protected:
     virtual word_t op(word_t val) = 0;
   public:
-    OneArgOp(Lvalue *arg) : arg(arg) {}
+    OneArgOp(LvaluePtr &&arg) : arg(std::move(arg)) {}
 
     void execute(Processor &processor, Memory &memory) override {
         word_t res = op(arg->val(memory));
@@ -40,7 +43,7 @@ class Dec final : public OneArgOp {
         return val - 1;
     }
   public:
-    Dec(Lvalue *arg) : OneArgOp(arg) {}
+    Dec(LvaluePtr &&arg) : OneArgOp(std::move(arg)) {}
 };
 
 class Inc final : public OneArgOp {
@@ -49,17 +52,17 @@ class Inc final : public OneArgOp {
         return val + 1;
     }
   public:
-    Inc(Lvalue *arg) : OneArgOp(arg) {}
+    Inc(LvaluePtr &&arg) : OneArgOp(std::move(arg)) {}
 };
 
 class TwoArgOp : public Executable {
   private:
-    std::shared_ptr<Lvalue> arg1;
-    std::shared_ptr<Rvalue> arg2;
+    LvaluePtr arg1;
+    RvaluePtr arg2;
   protected:
     virtual word_t op(word_t val1, word_t val2) = 0;
   public:
-    TwoArgOp(Lvalue *arg1, Rvalue *arg2) : arg1(arg1), arg2(arg2) {}
+    TwoArgOp(LvaluePtr &&arg1, RvaluePtr &&arg2) : arg1(std::move(arg1)), arg2(std::move(arg2)) {}
 
     void execute(Processor &processor, Memory &memory) override {
         word_t res = op(arg1->val(memory), arg2->val(memory));
@@ -74,7 +77,7 @@ class Add final : public TwoArgOp {
         return val1 + val2;
     }
   public:
-    Add(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
+    Add(LvaluePtr &&arg1, RvaluePtr &&arg2) : TwoArgOp(std::move(arg1), std::move(arg2)) {}
 };
 
 class Sub final : public TwoArgOp {
@@ -83,15 +86,15 @@ class Sub final : public TwoArgOp {
         return val1 - val2;
     }
   public:
-    Sub(Lvalue *arg1, Rvalue *arg2) : TwoArgOp(arg1, arg2) {}
+    Sub(LvaluePtr &&arg1, RvaluePtr &&arg2) : TwoArgOp(std::move(arg1), std::move(arg2)) {}
 };
 
 class Mov final : public Executable {
   private:
-    std::shared_ptr<Lvalue> dst;
-    std::shared_ptr<Rvalue> src;
+    LvaluePtr dst;
+    RvaluePtr src;
   public:
-    Mov(Lvalue *dst, Rvalue *src) : dst(dst), src(src) {}
+    Mov(LvaluePtr &&dst, RvaluePtr &&src) : dst(std::move(dst)), src(std::move(src)) {}
 
     void execute(Processor &, Memory &memory) override {
         dst->set(memory, src->val(memory));
@@ -100,11 +103,11 @@ class Mov final : public Executable {
 
 class Conditional : public Executable {
   private:
-    std::shared_ptr<Lvalue> arg;
+    LvaluePtr arg;
   protected:
     virtual bool cond_fulfilled(Processor &) = 0;
   public:
-    Conditional(Lvalue *arg) : arg(arg) {}
+    Conditional(LvaluePtr &&arg) : arg(std::move(arg)) {}
 
     void execute(Processor &processor, Memory &memory) override {
         if (cond_fulfilled(processor))
@@ -118,7 +121,7 @@ class One final : public Conditional {
         return true;
     }
   public:
-    One(Lvalue *arg) : Conditional(arg) {}
+    One(LvaluePtr &&arg) : Conditional(std::move(arg)) {}
 };
 
 class Onez final : public Conditional {
@@ -127,7 +130,7 @@ class Onez final : public Conditional {
         return processor.get_zero_flag();
     }
   public:
-    Onez(Lvalue *arg) : Conditional(arg) {}
+    Onez(LvaluePtr &&arg) : Conditional(std::move(arg)) {}
 };
 
 class Ones final : public Conditional {
@@ -136,7 +139,7 @@ class Ones final : public Conditional {
         return processor.get_sign_flag();
     }
   public:
-    Ones(Lvalue *arg) : Conditional(arg) {}
+    Ones(LvaluePtr &&arg) : Conditional(std::move(arg)) {}
 };
 
 class Loadable : public Instruction {
@@ -145,10 +148,10 @@ class Loadable : public Instruction {
 
 class Data final : public Loadable {
   private:
-    std::shared_ptr<Num> num;
     Id id;
+    NumPtr num;
   public:
-    Data(const char *id, Num *num) : num(num), id(id) {}
+    Data(const char *id, NumPtr &&num) : id(id), num(std::move(num)) {}
     void load(Memory &memory) override {
         memory.add_new_variable(id, num->val(memory));
     }
