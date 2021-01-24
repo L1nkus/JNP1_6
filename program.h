@@ -27,5 +27,5 @@ class Program {
 };
 }
 
-jnp1_6::Program program(const std::initializer_list<jnp1_6::InstructionPtr> &&init);
+jnp1_6::Program program(std::initializer_list<jnp1_6::InstructionPtr> init);
 #endif // JNP1_6_PROGRAM_H
