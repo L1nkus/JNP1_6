@@ -38,11 +38,18 @@ class Memory {
 
   public:
     Memory(unsigned_word_t mem_size) {
-        variables.resize(mem_size, 0);
+        variables.resize(mem_size);
+    }
+
+    void reset_memory() {
+        variables_register = std::vector<variable_t>();
+        for (auto &var : variables) {
+            var = 0;
+        }
     }
 
     word_t value_at(unsigned_word_t pos) const {
-        // Note: std::vector.at() throws std::out_of_range,
+        // Note: std::vector.at() checks bounds and throws std::out_of_range,
         // while operator[] does not.
         return variables.at(pos);
     }

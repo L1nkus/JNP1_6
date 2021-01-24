@@ -6,13 +6,16 @@
 #include <memory>
 
 // [TODO] przesunac gdzies?
+namespace jnp1_6 {
 class Program {
+  private:
+    std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
   public:
     Program(std::vector<std::shared_ptr<jnp1_6::Instruction>> &&init) :
         vec(std::move(init)) {};
-  private:
-    friend class Computer;
+
     void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) {
+        memory.reset_memory();
         for (auto &i: vec) {
             i->load(memory);
         }
@@ -22,16 +25,16 @@ class Program {
             i->execute(processor, memory);
         }
     }
-    std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
 };
+}
 
-inline Program program(const std::initializer_list<jnp1_6::Instruction *> &init) {
+inline jnp1_6::Program program(const std::initializer_list<jnp1_6::Instruction *> &init) {
     std::vector<std::shared_ptr<jnp1_6::Instruction>> vec;
     vec.reserve(init.size());
     for (auto &i: init) {
         vec.push_back(std::shared_ptr<jnp1_6::Instruction>(i));
     }
-    return Program(std::move(vec));
+    return jnp1_6::Program(std::move(vec));
 }
 
 class Computer {
@@ -41,7 +44,7 @@ class Computer {
   public:
     Computer(jnp1_6::unsigned_word_t mem_size) : memory(mem_size) {}
 
-    void boot(Program &p) {
+    void boot(jnp1_6::Program &p) {
         p.run(processor, memory);
     }
 
