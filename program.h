@@ -13,7 +13,7 @@ class Program {
     Program(const std::vector<InstructionPtr> &&init) :
         vec(std::move(init)) {};
 
-    void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) {
+    void run(jnp1_6::Processor &processor, jnp1_6::Memory &memory) const {
         memory.reset_memory();
         for (auto &i: vec) {
             i->load(memory);
@@ -27,5 +27,5 @@ class Program {
 };
 }
 
-jnp1_6::Program program(const std::initializer_list<jnp1_6::InstructionPtr> &&init);
+jnp1_6::Program program(std::initializer_list<jnp1_6::InstructionPtr> init);
 #endif // JNP1_6_PROGRAM_H

@@ -11,7 +11,7 @@ class Computer {
   public:
     Computer(jnp1_6::unsigned_word_t mem_size) : memory(mem_size) {}
 
-    void boot(jnp1_6::Program &p) {
+    void boot(const jnp1_6::Program &p) {
         p.run(processor, memory);
     }
 

@@ -8,7 +8,7 @@ namespace jnp1_6 {
 
 class Instruction {
   public:
-    virtual void load(Memory &) = 0;
+    virtual void load(Memory &) const = 0;
 
     virtual void execute(Processor &, Memory &) = 0;
 
@@ -19,14 +19,14 @@ using InstructionPtr = std::shared_ptr<Instruction>;
 
 class Executable : public Instruction {
   public:
-    void load(Memory &) override {}
+    void load(Memory &) const override {}
 };
 
 class OneArgOp : public Executable {
   private:
     LvaluePtr arg;
   protected:
-    virtual word_t op(word_t val) = 0;
+    virtual word_t op(word_t val) const = 0;
   public:
     OneArgOp(LvaluePtr &&arg) : arg(std::move(arg)) {}
 
@@ -39,7 +39,7 @@ class OneArgOp : public Executable {
 
 class Dec final : public OneArgOp {
   protected:
-    word_t op(word_t val) override {
+    word_t op(word_t val) const override {
         return val - 1;
     }
   public:
@@ -48,7 +48,7 @@ class Dec final : public OneArgOp {
 
 class Inc final : public OneArgOp {
   protected:
-    word_t op(word_t val) override {
+    word_t op(word_t val) const override {
         return val + 1;
     }
   public:
@@ -60,7 +60,7 @@ class TwoArgOp : public Executable {
     LvaluePtr arg1;
     RvaluePtr arg2;
   protected:
-    virtual word_t op(word_t val1, word_t val2) = 0;
+    virtual word_t op(word_t val1, word_t val2) const = 0;
   public:
     TwoArgOp(LvaluePtr &&arg1, RvaluePtr &&arg2) : arg1(std::move(arg1)), arg2(std::move(arg2)) {}
 
@@ -73,7 +73,7 @@ class TwoArgOp : public Executable {
 
 class Add final : public TwoArgOp {
   protected:
-    word_t op(word_t val1, word_t val2) override {
+    word_t op(word_t val1, word_t val2) const override {
         return val1 + val2;
     }
   public:
@@ -82,7 +82,7 @@ class Add final : public TwoArgOp {
 
 class Sub final : public TwoArgOp {
   protected:
-    word_t op(word_t val1, word_t val2) override {
+    word_t op(word_t val1, word_t val2) const override {
         return val1 - val2;
     }
   public:
@@ -105,7 +105,7 @@ class Conditional : public Executable {
   private:
     LvaluePtr arg;
   protected:
-    virtual bool cond_fulfilled(Processor &) = 0;
+    virtual bool cond_fulfilled(const Processor &) const = 0;
   public:
     Conditional(LvaluePtr &&arg) : arg(std::move(arg)) {}
 
@@ -117,7 +117,7 @@ class Conditional : public Executable {
 
 class One final : public Conditional {
   protected:
-    bool cond_fulfilled(Processor &) override {
+    bool cond_fulfilled(const Processor &) const override {
         return true;
     }
   public:
@@ -126,7 +126,7 @@ class One final : public Conditional {
 
 class Onez final : public Conditional {
   protected:
-    bool cond_fulfilled(Processor &processor) override {
+    bool cond_fulfilled(const Processor &processor) const override {
         return processor.get_zero_flag();
     }
   public:
@@ -135,7 +135,7 @@ class Onez final : public Conditional {
 
 class Ones final : public Conditional {
   protected:
-    bool cond_fulfilled(Processor &processor) override {
+    bool cond_fulfilled(const Processor &processor) const override {
         return processor.get_sign_flag();
     }
   public:
@@ -152,7 +152,7 @@ class Data final : public Loadable {
     NumPtr num;
   public:
     Data(const char *id, NumPtr &&num) : id(id), num(std::move(num)) {}
-    void load(Memory &memory) override {
+    void load(Memory &memory) const override {
         memory.add_new_variable(id, num->val(memory));
     }
 };
